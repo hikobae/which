@@ -71,6 +71,20 @@ func printIfExists(filepath string) bool {
 	return existed
 }
 
+func which(filename string, paths []string) bool {
+	existed := false
+	for _, d := range paths {
+		if !printIfExists(filepath.Join(d, filename)) {
+			continue
+		}
+		existed = true
+		if !*allFlag {
+			break
+		}
+	}
+	return existed
+}
+
 func getPaths() []string {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -94,20 +108,14 @@ func main() {
 
 	paths := getPaths()
 
-	existed := false
+	fail := false
 	for _, f := range flag.Args() {
-		for _, d := range paths {
-			if !printIfExists(filepath.Join(d, f)) {
-				continue
-			}
-			existed = true
-			if !*allFlag {
-				break
-			}
+		if !which(f, paths) {
+			fail = true
 		}
 	}
 
-	if existed {
+	if fail {
 		os.Exit(1)
 	}
 }
