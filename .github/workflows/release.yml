@@ -67,7 +67,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           cd target/${{ matrix.target }}/release
-          powershell -Command "Compress-Archive -Path which.exe, '${{ github.workspace }}\\README.md', '${{ github.workspace }}\\LICENSE', '${{ github.workspace }}\\which-clipboard.bat' -DestinationPath '${{ matrix.archive_name }}' -Force"
+          powershell -Command "Compress-Archive -Path which.exe, '${{ github.workspace }}\\README.md', '${{ github.workspace }}\\LICENSE' -DestinationPath '${{ matrix.archive_name }}' -Force"
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
