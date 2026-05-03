@@ -1,3 +1,10 @@
+/target/
+Cargo.lock
+
+# IDE
+.vscode/
+*~
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
