@@ -50,7 +50,7 @@ fn which(filename: &str, dirs: &[String], exts: &[String]) -> Vec<PathBuf> {
         let mut path = Path::new(dir).join(filename);
         for ext in &exts {
             path.set_extension(ext);
-            if path.exists() {
+            if path.exists() && !path.is_dir() {
                 program_paths.push(path.clone());
             }
         }
