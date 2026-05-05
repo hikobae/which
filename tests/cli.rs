@@ -38,6 +38,18 @@ fn test_help_with_extra_args() {
 }
 
 #[test]
+fn test_version() {
+    for arg in ["-v", "--version"] {
+        let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.arg(arg)
+            .assert()
+            .success()
+            .stdout(predicates::str::contains(env!("CARGO_PKG_VERSION")))
+            .code(0);
+    }
+}
+
+#[test]
 fn test_no_args() {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
     cmd.assert()

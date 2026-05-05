@@ -34,9 +34,16 @@ which print the pathname of the filename in the current environment.
 
 Options:
 -h, --help
-  Print usage information on standard output then exit successfully."#,
+  Print usage information on standard output then exit successfully.
+
+-v, --version
+  Print version number and quit."#,
         env!("CARGO_BIN_NAME")
     )
+}
+
+fn version() -> String {
+    format!("{} {}", env!("CARGO_BIN_NAME"), env!("CARGO_PKG_VERSION"))
 }
 
 fn which(filename: &str, dirs: &[String], exts: &[String]) -> Vec<PathBuf> {
@@ -60,6 +67,11 @@ fn main() {
 
     if args.has_help_option {
         println!("{}", usage());
+        std::process::exit(0);
+    }
+
+    if args.has_version_option {
+        println!("{}", version());
         std::process::exit(0);
     }
 
