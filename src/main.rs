@@ -1,3 +1,5 @@
+mod args;
+
 use std::env;
 use std::path::{Path, PathBuf};
 
@@ -37,11 +39,6 @@ Options:
     )
 }
 
-fn has_help_option(args: &[String]) -> bool {
-    args.iter()
-        .any(|a| a.eq_ignore_ascii_case("-h") || a.eq_ignore_ascii_case("--help"))
-}
-
 fn which(filename: &str, dirs: &[String], exts: &[String]) -> Vec<PathBuf> {
     let mut program_paths: Vec<PathBuf> = vec![];
 
@@ -59,16 +56,18 @@ fn which(filename: &str, dirs: &[String], exts: &[String]) -> Vec<PathBuf> {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    if env::args().len() != 2 {
-        die!("{}", usage());
-    }
-    if has_help_option(&args) {
+    let args = args::parse_args();
+
+    if args.has_help_option {
         println!("{}", usage());
         std::process::exit(0);
     }
 
-    let program_name = &args[1];
+    if args.positional.len() != 1 {
+        die!("{}", usage());
+    }
+
+    let program_name = &args.positional[0];
 
     let exts = match env::var("PATHEXT") {
         Ok(pathext) => parse_pathext(&pathext),

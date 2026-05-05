@@ -25,6 +25,19 @@ fn test_help() {
 }
 
 #[test]
+fn test_help_with_extra_args() {
+    for arg in ["-h", "--help"] {
+        let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.arg(arg)
+            .arg(env!("CARGO_PKG_NAME"))
+            .assert()
+            .success()
+            .stdout(predicates::str::contains("Usage:"))
+            .code(0);
+    }
+}
+
+#[test]
 fn test_no_args() {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
     cmd.assert()
