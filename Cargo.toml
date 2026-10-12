@@ -1,6 +1,6 @@
 [package]
 name = "which"
-version = "0.3.0"
+version = "0.4.0"
 description = "`which` clone for windows"
 repository = "https://github.com/hikobae/which"
 homepage = "https://github.com/hikobae/which"
