@@ -1,7 +1,11 @@
 [package]
 name = "which"
 version = "0.3.0"
+description = "`which` clone for windows"
+repository = "https://github.com/hikobae/which"
+homepage = "https://github.com/hikobae/which"
 edition = "2024"
+license = "MIT"
 
 [dev-dependencies]
 assert_cmd = "2.2.1"
