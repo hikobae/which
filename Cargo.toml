@@ -2,10 +2,13 @@
 name = "which"
 version = "0.4.0"
 description = "`which` clone for windows"
+authors = ["TAKAHASHI Satoshi <hikobae@gmail.com>"]
+edition = "2024"
 repository = "https://github.com/hikobae/which"
 homepage = "https://github.com/hikobae/which"
-edition = "2024"
 license = "MIT"
+readme = "README.md"
+publish = false
 
 [dev-dependencies]
 assert_cmd = "2.2.1"
