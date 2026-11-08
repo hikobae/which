@@ -12,10 +12,7 @@ macro_rules! die {
 
 /// PATHEXT 環境変数を区切り文字 (";") で分割して返す.
 fn parse_pathext(pathext: &str) -> Vec<String> {
-    pathext
-        .split(";")
-        .map(|c| c.trim_start_matches('.').to_lowercase())
-        .collect()
+    pathext.split(";").map(|c| c.to_lowercase()).collect()
 }
 
 /// PATH 環境変数を分割して Vec<String> を返す.
@@ -51,11 +48,11 @@ fn which(filename: &str, dirs: &[String], exts: &[String]) -> Vec<PathBuf> {
 
     let exts = [vec!["".to_string()], exts.to_vec()].concat();
     for dir in dirs {
-        let mut path = Path::new(dir).join(filename);
+        let dir_path = Path::new(dir);
         for ext in &exts {
-            path.set_extension(ext);
+            let path = dir_path.join(filename.to_string() + ext);
             if path.exists() && !path.is_dir() {
-                program_paths.push(path.clone());
+                program_paths.push(path);
             }
         }
     }

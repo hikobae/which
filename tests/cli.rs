@@ -1,4 +1,5 @@
 use assert_cmd::Command;
+use assert_fs::fixture::FileTouch;
 use assert_fs::fixture::PathChild;
 use assert_fs::prelude::PathCreateDir;
 
@@ -9,6 +10,29 @@ fn test_success() {
         .assert()
         .success()
         .stdout(predicates::str::contains(env!("CARGO_PKG_NAME")))
+        .code(0);
+}
+
+/// 別ファイルに誤マッチしないことを確認するテスト。
+/// ファイル名にドットが含まれる場合、拡張子の候補にドットが含まれるため、誤マッチする可能性がある。
+#[test]
+fn test_dot_in_filename_does_not_match_other_file() {
+    const FILE_NAME: &str = "file";
+    const FILE_NAME_WITH_DOT: &str = "file.dot";
+    let temp_dir = assert_fs::TempDir::new().unwrap();
+    temp_dir.child(FILE_NAME).touch().unwrap();
+    temp_dir.child(FILE_NAME_WITH_DOT).touch().unwrap();
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg(FILE_NAME_WITH_DOT)
+        .env("PATH", temp_dir.display().to_string())
+        .env("PATHEXT", ".COM;.EXE")
+        .assert()
+        .success()
+        .stdout(format!(
+            "{}\n",
+            temp_dir.child(FILE_NAME_WITH_DOT).display()
+        ))
         .code(0);
 }
 
