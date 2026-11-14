@@ -2,6 +2,8 @@ use assert_cmd::Command;
 use assert_fs::fixture::FileTouch;
 use assert_fs::fixture::PathChild;
 use assert_fs::prelude::PathCreateDir;
+use std::env;
+use std::path::PathBuf;
 
 #[test]
 fn test_success() {
@@ -36,7 +38,7 @@ fn test_dot_in_filename_does_not_match_other_file() {
         .code(0);
 }
 
-// PATHEXTの先頭と末尾にセミコロンがある場合のテスト
+/// PATHEXTの先頭と末尾にセミコロンがある場合のテスト
 #[test]
 fn test_pathext_with_leading_trailing_semicolons() {
     const FILE_NAME: &str = "file";
@@ -47,6 +49,85 @@ fn test_pathext_with_leading_trailing_semicolons() {
     cmd.arg(FILE_NAME)
         .env("PATH", temp_dir.display().to_string())
         .env("PATHEXT", ";.COM;.EXE;")
+        .assert()
+        .success()
+        .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
+        .code(0);
+}
+
+/// PATH に同じディレクトリが複数回含まれる場合のテスト
+#[test]
+fn test_path_with_duplicate_directories() {
+    const FILE_NAME: &str = "file";
+    let temp_dir = assert_fs::TempDir::new().unwrap();
+    temp_dir.child(FILE_NAME).touch().unwrap();
+
+    let path = temp_dir.display().to_string();
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg(FILE_NAME)
+        .env("PATH", env::join_paths(&[path.clone(), path]).unwrap())
+        .env("PATHEXT", ".COM;.EXE")
+        .assert()
+        .success()
+        .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
+        .code(0);
+}
+
+/// PATH にカレントディレクトリが含まれる場合のテスト
+#[test]
+fn test_path_with_current_directory() {
+    const FILE_NAME: &str = "file";
+    let temp_dir = assert_fs::TempDir::new().unwrap();
+    temp_dir.child(FILE_NAME).touch().unwrap();
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg(FILE_NAME)
+        .env("PATH", temp_dir.display().to_string())
+        .env("PATHEXT", ".COM;.EXE")
+        .current_dir(&temp_dir)
+        .assert()
+        .success()
+        .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
+        .code(0);
+}
+
+/// コマンドの引数にフルパスを指定した場合のテスト
+#[test]
+fn test_full_path() {
+    const FILE_NAME: &str = "file";
+    let temp_dir = assert_fs::TempDir::new().unwrap();
+    let file = temp_dir.child(FILE_NAME);
+    file.touch().unwrap();
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg(file.path())
+        .env("PATH", temp_dir.display().to_string())
+        .env("PATHEXT", ".COM;.EXE")
+        .current_dir(&temp_dir)
+        .assert()
+        .success()
+        .stdout(format!("{}\n", file.display()))
+        .code(0);
+}
+
+/// PATH に大文字小文字だけが異なる同一ディレクトリがあっても 1 回だけ出力する.
+#[test]
+fn test_path_with_case_variant_directories() {
+    const FILE_NAME: &str = "file";
+    let temp_dir = assert_fs::TempDir::new().unwrap();
+    temp_dir.child(FILE_NAME).touch().unwrap();
+
+    let orig = temp_dir.path().to_path_buf();
+    let upper = PathBuf::from(orig.to_string_lossy().to_uppercase());
+    assert_ne!(orig, upper);
+
+    let path = env::join_paths([&orig, &upper]).unwrap();
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg(FILE_NAME)
+        .env("PATH", path)
+        .env("PATHEXT", ".COM;.EXE")
         .assert()
         .success()
         .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))

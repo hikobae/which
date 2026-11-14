@@ -1,6 +1,8 @@
 mod args;
 
+use std::collections::HashSet;
 use std::env;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 macro_rules! die {
@@ -49,13 +51,19 @@ fn version() -> String {
 
 fn which(filename: &str, dirs: &[String], exts: &[String]) -> Vec<PathBuf> {
     let mut program_paths: Vec<PathBuf> = vec![];
+    let mut canonicalized_paths: HashSet<PathBuf> = HashSet::new();
 
     let exts = [vec!["".to_string()], exts.to_vec()].concat();
     for dir in dirs {
         let dir_path = Path::new(dir);
         for ext in &exts {
             let path = dir_path.join(filename.to_string() + ext);
-            if path.exists() && !path.is_dir() {
+            if !path.exists() || path.is_dir() {
+                continue;
+            }
+
+            let canonicalized_path = fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
+            if canonicalized_paths.insert(canonicalized_path) {
                 program_paths.push(path);
             }
         }
