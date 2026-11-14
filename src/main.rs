@@ -12,7 +12,11 @@ macro_rules! die {
 
 /// PATHEXT 環境変数を区切り文字 (";") で分割して返す.
 fn parse_pathext(pathext: &str) -> Vec<String> {
-    pathext.split(";").map(|c| c.to_lowercase()).collect()
+    pathext
+        .split(";")
+        .map(|c| c.trim().to_lowercase())
+        .filter(|c| !c.is_empty())
+        .collect()
 }
 
 /// PATH 環境変数を分割して Vec<String> を返す.
