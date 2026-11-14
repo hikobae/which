@@ -58,7 +58,7 @@ fn which(filename: &str, dirs: &[String], exts: &[String]) -> Vec<PathBuf> {
         let dir_path = Path::new(dir);
         for ext in &exts {
             let path = dir_path.join(filename.to_string() + ext);
-            if !path.exists() || path.is_dir() {
+            if !path.is_file() {
                 continue;
             }
 
