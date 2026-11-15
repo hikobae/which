@@ -393,3 +393,21 @@ fn test_directory_with_same_name_is_ignored() {
         .stdout(predicates::str::is_empty())
         .code(1);
 }
+
+/// `-` で始まる未知のオプションはファイル名として扱われる.
+#[test]
+fn test_dash_prefixed_name_is_treated_as_filename() {
+    const FILE_NAME: &str = "-x";
+    let temp_dir = assert_fs::TempDir::new().unwrap();
+    temp_dir.child(FILE_NAME).touch().unwrap();
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg(FILE_NAME)
+        .env("PATH", temp_dir.display().to_string())
+        .env("PATHEXT", ".COM;.EXE")
+        .current_dir(&temp_dir)
+        .assert()
+        .success()
+        .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
+        .code(0);
+}
