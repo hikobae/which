@@ -277,8 +277,8 @@ fn test_error_when_app_name_is_directory_in_path() {
 
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
     cmd.arg(env!("CARGO_PKG_NAME"))
-        .env_remove("PATH")
         .env("PATH", temp_dir.display().to_string())
+        .current_dir(&temp_dir)
         .assert()
         .failure()
         .stdout(predicates::str::is_empty())
