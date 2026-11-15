@@ -92,6 +92,22 @@ fn test_path_with_current_directory() {
         .code(0);
 }
 
+/// PATHEXT による拡張子補完のテスト
+#[test]
+fn test_pathext_completion() {
+    let temp_dir = assert_fs::TempDir::new().unwrap();
+    temp_dir.child("file.exe").touch().unwrap();
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg("file")
+        .env("PATH", temp_dir.display().to_string())
+        .env("PATHEXT", ".COM;.EXE")
+        .assert()
+        .success()
+        .stdout(format!("{}\n", temp_dir.child("file.exe").display()))
+        .code(0);
+}
+
 /// コマンドの引数にフルパスを指定した場合、PATH に無い場所のファイルでも見つかる.
 #[test]
 fn test_full_path() {
