@@ -66,7 +66,7 @@ fn test_path_with_duplicate_directories() {
 
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
     cmd.arg(FILE_NAME)
-        .env("PATH", env::join_paths(&[path.clone(), path]).unwrap())
+        .env("PATH", env::join_paths([&path, &path]).unwrap())
         .env("PATHEXT", ".COM;.EXE")
         .assert()
         .success()
