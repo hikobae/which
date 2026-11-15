@@ -4,6 +4,20 @@ use assert_fs::fixture::PathChild;
 use assert_fs::prelude::PathCreateDir;
 use std::env;
 
+/// カレントディレクトリ経由で見つかったパスの期待値を返す.
+///
+/// - unix: 子プロセスの `env::current_dir()` はシンボリックリンク解決済みのパスを返す
+///   (macOS の `/var` -> `/private/var` など)。そのため `canonicalize()` で表記を合わせる。
+/// - それ以外 (Windows): `canonicalize()` は `\\?\` 付きのパスを返し、`current_dir()` の
+///   表記と一致しない。`dir.path()` をそのまま使う。
+fn via_cwd(dir: &assert_fs::TempDir, name: &str) -> String {
+    #[cfg(unix)]
+    let base = dir.path().canonicalize().unwrap();
+    #[cfg(not(unix))]
+    let base = dir.path().to_path_buf();
+    base.join(name).display().to_string()
+}
+
 /// PATH 上のファイルが見つかる基本ケース.
 #[test]
 fn test_success() {
@@ -72,7 +86,7 @@ fn test_current_directory_comes_first() {
         .success()
         .stdout(format!(
             "{}\n{}\n",
-            current_dir.child(FILE_NAME).display(),
+            via_cwd(&current_dir, FILE_NAME),
             path_dir.child(FILE_NAME).display()
         ))
         .code(0);
@@ -85,6 +99,7 @@ fn test_dot_in_filename_does_not_match_other_file() {
     const FILE_NAME: &str = "file";
     const FILE_NAME_WITH_DOT: &str = "file.dot";
     let temp_dir = assert_fs::TempDir::new().unwrap();
+    let other_dir = assert_fs::TempDir::new().unwrap();
     temp_dir.child(FILE_NAME).touch().unwrap();
     temp_dir.child(FILE_NAME_WITH_DOT).touch().unwrap();
 
@@ -92,7 +107,7 @@ fn test_dot_in_filename_does_not_match_other_file() {
     cmd.arg(FILE_NAME_WITH_DOT)
         .env("PATH", temp_dir.display().to_string())
         .env("PATHEXT", ".COM;.EXE")
-        .current_dir(&temp_dir)
+        .current_dir(&other_dir)
         .assert()
         .success()
         .stdout(format!(
@@ -107,13 +122,14 @@ fn test_dot_in_filename_does_not_match_other_file() {
 fn test_pathext_with_leading_trailing_semicolons() {
     const FILE_NAME: &str = "file";
     let temp_dir = assert_fs::TempDir::new().unwrap();
+    let other_dir = assert_fs::TempDir::new().unwrap();
     temp_dir.child(FILE_NAME).touch().unwrap();
 
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
     cmd.arg(FILE_NAME)
         .env("PATH", temp_dir.display().to_string())
         .env("PATHEXT", ";.COM;.EXE;")
-        .current_dir(&temp_dir)
+        .current_dir(&other_dir)
         .assert()
         .success()
         .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
@@ -136,7 +152,7 @@ fn test_path_with_duplicate_directories() {
         .current_dir(&temp_dir)
         .assert()
         .success()
-        .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
+        .stdout(format!("{}\n", via_cwd(&temp_dir, FILE_NAME)))
         .code(0);
 }
 
@@ -155,7 +171,7 @@ fn test_current_directory_without_path() {
         .current_dir(&current_dir)
         .assert()
         .success()
-        .stdout(format!("{}\n", current_dir.child(FILE_NAME).display()))
+        .stdout(format!("{}\n", via_cwd(&current_dir, FILE_NAME)))
         .code(0);
 }
 
@@ -163,13 +179,14 @@ fn test_current_directory_without_path() {
 #[test]
 fn test_pathext_completion() {
     let temp_dir = assert_fs::TempDir::new().unwrap();
+    let other_dir = assert_fs::TempDir::new().unwrap();
     temp_dir.child("file.exe").touch().unwrap();
 
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
     cmd.arg("file")
         .env("PATH", temp_dir.display().to_string())
         .env("PATHEXT", ".COM;.EXE")
-        .current_dir(&temp_dir)
+        .current_dir(&other_dir)
         .assert()
         .success()
         .stdout(format!("{}\n", temp_dir.child("file.exe").display()))
@@ -239,7 +256,7 @@ fn test_path_with_case_variant_directories() {
         .current_dir(&temp_dir)
         .assert()
         .success()
-        .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
+        .stdout(format!("{}\n", via_cwd(&temp_dir, FILE_NAME)))
         .code(0);
 }
 
@@ -316,13 +333,14 @@ fn test_missing_env_vars() {
 fn test_missing_pathext() {
     const FILE_NAME: &str = "file.exe";
     let temp_dir = assert_fs::TempDir::new().unwrap();
+    let other_dir = assert_fs::TempDir::new().unwrap();
     temp_dir.child(FILE_NAME).touch().unwrap();
 
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
     cmd.arg(FILE_NAME)
         .env("PATH", temp_dir.display().to_string())
         .env_remove("PATHEXT")
-        .current_dir(&temp_dir)
+        .current_dir(&other_dir)
         .assert()
         .success()
         .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
@@ -399,13 +417,14 @@ fn test_directory_with_same_name_is_ignored() {
 fn test_dash_prefixed_name_is_treated_as_filename() {
     const FILE_NAME: &str = "-x";
     let temp_dir = assert_fs::TempDir::new().unwrap();
+    let other_dir = assert_fs::TempDir::new().unwrap();
     temp_dir.child(FILE_NAME).touch().unwrap();
 
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
     cmd.arg(FILE_NAME)
         .env("PATH", temp_dir.display().to_string())
         .env("PATHEXT", ".COM;.EXE")
-        .current_dir(&temp_dir)
+        .current_dir(&other_dir)
         .assert()
         .success()
         .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
