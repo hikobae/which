@@ -92,6 +92,7 @@ fn test_dot_in_filename_does_not_match_other_file() {
     cmd.arg(FILE_NAME_WITH_DOT)
         .env("PATH", temp_dir.display().to_string())
         .env("PATHEXT", ".COM;.EXE")
+        .current_dir(&temp_dir)
         .assert()
         .success()
         .stdout(format!(
@@ -112,13 +113,14 @@ fn test_pathext_with_leading_trailing_semicolons() {
     cmd.arg(FILE_NAME)
         .env("PATH", temp_dir.display().to_string())
         .env("PATHEXT", ";.COM;.EXE;")
+        .current_dir(&temp_dir)
         .assert()
         .success()
         .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
         .code(0);
 }
 
-/// PATH に同じディレクトリが複数回含まれる場合のテスト
+/// PATH に同じディレクトリが複数回含まれ、カレントディレクトリとも重複していても 1 回だけ出力する.
 #[test]
 fn test_path_with_duplicate_directories() {
     const FILE_NAME: &str = "file";
@@ -131,27 +133,29 @@ fn test_path_with_duplicate_directories() {
     cmd.arg(FILE_NAME)
         .env("PATH", env::join_paths([&path, &path]).unwrap())
         .env("PATHEXT", ".COM;.EXE")
+        .current_dir(&temp_dir)
         .assert()
         .success()
         .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
         .code(0);
 }
 
-/// PATH にカレントディレクトリが含まれる場合のテスト
+/// PATH に無くても、カレントディレクトリのファイルは見つかる.
 #[test]
-fn test_path_with_current_directory() {
+fn test_current_directory_without_path() {
     const FILE_NAME: &str = "file";
-    let temp_dir = assert_fs::TempDir::new().unwrap();
-    temp_dir.child(FILE_NAME).touch().unwrap();
+    let current_dir = assert_fs::TempDir::new().unwrap();
+    let other_dir = assert_fs::TempDir::new().unwrap();
+    current_dir.child(FILE_NAME).touch().unwrap();
 
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
     cmd.arg(FILE_NAME)
-        .env("PATH", temp_dir.display().to_string())
+        .env("PATH", other_dir.display().to_string())
         .env("PATHEXT", ".COM;.EXE")
-        .current_dir(&temp_dir)
+        .current_dir(&current_dir)
         .assert()
         .success()
-        .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
+        .stdout(format!("{}\n", current_dir.child(FILE_NAME).display()))
         .code(0);
 }
 
@@ -165,6 +169,7 @@ fn test_pathext_completion() {
     cmd.arg("file")
         .env("PATH", temp_dir.display().to_string())
         .env("PATHEXT", ".COM;.EXE")
+        .current_dir(&temp_dir)
         .assert()
         .success()
         .stdout(format!("{}\n", temp_dir.child("file.exe").display()))
@@ -210,7 +215,7 @@ fn test_full_path_with_pathext() {
         .code(0);
 }
 
-/// PATH に大文字小文字だけが異なる同一ディレクトリがあっても 1 回だけ出力する.
+/// PATH に大文字小文字だけが異なる同一ディレクトリがあり、カレントディレクトリとも重複していても 1 回だけ出力する.
 /// 大文字小文字を区別しないファイルシステム(Windows)でのみ成立する.
 #[test]
 #[cfg(windows)]
@@ -231,6 +236,7 @@ fn test_path_with_case_variant_directories() {
     cmd.arg(FILE_NAME)
         .env("PATH", path)
         .env("PATHEXT", ".COM;.EXE")
+        .current_dir(&temp_dir)
         .assert()
         .success()
         .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
@@ -316,6 +322,7 @@ fn test_missing_pathext() {
     cmd.arg(FILE_NAME)
         .env("PATH", temp_dir.display().to_string())
         .env_remove("PATHEXT")
+        .current_dir(&temp_dir)
         .assert()
         .success()
         .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
@@ -344,6 +351,7 @@ fn test_non_unicode_pathext() {
     cmd.arg(FILE_NAME)
         .env("PATH", temp_dir.display().to_string())
         .env("PATHEXT", &invalid)
+        .current_dir(&temp_dir)
         .assert()
         .failure()
         .stderr(predicates::str::contains("Error:"))
