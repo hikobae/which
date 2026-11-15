@@ -5,13 +5,22 @@ use assert_fs::prelude::PathCreateDir;
 use std::env;
 use std::path::PathBuf;
 
+/// PATH 上のファイルが見つかる基本ケース.
 #[test]
 fn test_success() {
+    const FILE_NAME: &str = "file";
+    let temp_dir = assert_fs::TempDir::new().unwrap();
+    let other_dir = assert_fs::TempDir::new().unwrap();
+    temp_dir.child(FILE_NAME).touch().unwrap();
+
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-    cmd.arg(env!("CARGO_PKG_NAME"))
+    cmd.arg(FILE_NAME)
+        .env("PATH", temp_dir.display().to_string())
+        .env("PATHEXT", ".COM;.EXE")
+        .current_dir(&other_dir)
         .assert()
         .success()
-        .stdout(predicates::str::contains(env!("CARGO_PKG_NAME")))
+        .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
         .code(0);
 }
 
