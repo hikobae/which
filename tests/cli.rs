@@ -112,7 +112,9 @@ fn test_full_path() {
 }
 
 /// PATH に大文字小文字だけが異なる同一ディレクトリがあっても 1 回だけ出力する.
+/// 大文字小文字を区別しないファイルシステム(Windows)でのみ成立する.
 #[test]
+#[cfg(windows)]
 fn test_path_with_case_variant_directories() {
     const FILE_NAME: &str = "file";
     let temp_dir = assert_fs::TempDir::new().unwrap();
