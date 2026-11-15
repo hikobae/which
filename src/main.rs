@@ -38,16 +38,17 @@ fn parse_path(path: &OsStr) -> Vec<PathBuf> {
 
 fn usage() -> String {
     format!(
-        r#"Usage: {} filename
+        r#"Usage: {} [-h | --help] [-v | --version] filename
 
-which print the pathname of the filename in the current environment.
+Search the current directory and each directory in PATH for filename,
+and print the path of every match.
+
+For each directory, filename is tried as-is first, then with each
+extension in PATHEXT.
 
 Options:
--h, --help
-  Print usage information on standard output then exit successfully.
-
--v, --version
-  Print version number and quit."#,
+  -h, --help     Print usage information and exit.
+  -v, --version  Print version number and exit."#,
         env!("CARGO_BIN_NAME")
     )
 }
