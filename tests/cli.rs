@@ -285,6 +285,8 @@ fn test_non_unicode_pathext() {
         .code(1);
 }
 
+/// PATH 上の同名のエントリがディレクトリの場合は実行ファイルとして扱わず、
+/// 何も出力せず終了コード 1 で終了することを確認するテスト。
 #[test]
 fn test_error_when_app_name_is_directory_in_path() {
     let temp_dir = assert_fs::TempDir::new().unwrap();
