@@ -438,3 +438,22 @@ fn test_non_unicode_path_entry() {
         .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
         .code(0);
 }
+
+/// PATH の各エントリの前後の空白は除去される.
+#[test]
+fn test_path_entry_with_surrounding_spaces() {
+    const FILE_NAME: &str = "file";
+    let temp_dir = assert_fs::TempDir::new().unwrap();
+    let other_dir = assert_fs::TempDir::new().unwrap();
+    temp_dir.child(FILE_NAME).touch().unwrap();
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg(FILE_NAME)
+        .env("PATH", format!("  {}  ", temp_dir.display()))
+        .env("PATHEXT", ".COM;.EXE")
+        .current_dir(&other_dir)
+        .assert()
+        .success()
+        .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
+        .code(0);
+}
