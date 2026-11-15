@@ -2,8 +2,9 @@ mod args;
 
 use std::collections::HashSet;
 use std::env;
+use std::ffi::OsStr;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 macro_rules! die {
     ($($arg:tt)*) => {{
@@ -21,12 +22,16 @@ fn parse_pathext(pathext: &str) -> Vec<String> {
         .collect()
 }
 
-/// PATH 環境変数を分割して Vec<String> を返す.
+/// PATH 環境変数を分割して Vec<PathBuf> を返す.
 /// 各エントリの前後の空白は除去し(前後に空白を含むディレクトリ名は扱えない)、空のエントリは捨てる.
-fn parse_path(path: &str) -> Vec<String> {
+/// 非 UTF-8 のエントリは空白除去をせず、そのまま保持する.
+fn parse_path(path: &OsStr) -> Vec<PathBuf> {
     env::split_paths(path)
-        .map(|p| p.to_string_lossy().trim().to_string())
-        .filter(|p| !p.is_empty())
+        .map(|p| match p.to_str() {
+            Some(s) => PathBuf::from(s.trim()),
+            None => p,
+        })
+        .filter(|p| !p.as_os_str().is_empty())
         .collect()
 }
 
@@ -50,7 +55,7 @@ fn version() -> String {
     format!("{} {}", env!("CARGO_BIN_NAME"), env!("CARGO_PKG_VERSION"))
 }
 
-fn which(filename: &str, dirs: &[String], exts: &[String]) -> Vec<PathBuf> {
+fn which(filename: &str, dirs: &[PathBuf], exts: &[String]) -> Vec<PathBuf> {
     let mut program_paths: Vec<PathBuf> = vec![];
     let mut canonicalized_paths: HashSet<PathBuf> = HashSet::new();
 
@@ -58,9 +63,8 @@ fn which(filename: &str, dirs: &[String], exts: &[String]) -> Vec<PathBuf> {
         .chain(exts.iter().map(String::as_str))
         .collect();
     for dir in dirs {
-        let dir_path = Path::new(dir);
         for ext in &exts {
-            let path = dir_path.join(format!("{filename}{ext}"));
+            let path = dir.join(format!("{filename}{ext}"));
             if !path.is_file() {
                 continue;
             }
@@ -100,13 +104,13 @@ fn main() {
     };
 
     let current_dir = match env::current_dir() {
-        Ok(path) => path.display().to_string(),
+        Ok(path) => path,
         Err(e) => die!("Error: Failed to get current directory: {}", e),
     };
 
-    let paths = match env::var("PATH") {
-        Ok(path) => [vec![current_dir], parse_path(&path)].concat(),
-        Err(e) => die!("Error: Failed to read PATH environment variable: {}", e),
+    let paths = match env::var_os("PATH") {
+        Some(path) => [vec![current_dir], parse_path(&path)].concat(),
+        None => die!("Error: Failed to read PATH environment variable: not set"),
     };
 
     let program_paths = which(program_name, &paths, &exts);
