@@ -53,11 +53,13 @@ fn which(filename: &str, dirs: &[String], exts: &[String]) -> Vec<PathBuf> {
     let mut program_paths: Vec<PathBuf> = vec![];
     let mut canonicalized_paths: HashSet<PathBuf> = HashSet::new();
 
-    let exts = [vec!["".to_string()], exts.to_vec()].concat();
+    let exts: Vec<&str> = std::iter::once("")
+        .chain(exts.iter().map(String::as_str))
+        .collect();
     for dir in dirs {
         let dir_path = Path::new(dir);
         for ext in &exts {
-            let path = dir_path.join(filename.to_string() + ext);
+            let path = dir_path.join(format!("{filename}{ext}"));
             if !path.is_file() {
                 continue;
             }
