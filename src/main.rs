@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use std::env;
 use std::ffi::OsStr;
 use std::fs;
+use std::io::{self, Write};
 use std::path::PathBuf;
 
 macro_rules! die {
@@ -78,6 +79,31 @@ fn which(filename: &str, dirs: &[PathBuf], exts: &[String]) -> Vec<PathBuf> {
     program_paths
 }
 
+/// 標準出力へ文字列を書き込む.
+fn println(s: &str) -> io::Result<()> {
+    let mut out = io::stdout().lock();
+    writeln!(out, "{}", s).and_then(|()| out.flush())
+}
+
+/// 見つかったパスを 1 行ずつ標準出力へ書く.
+fn print_paths(paths: &[PathBuf]) -> io::Result<()> {
+    let mut out = io::stdout().lock();
+    for path in paths {
+        writeln!(out, "{}", path.display())?;
+    }
+    out.flush()
+}
+
+/// 出力結果に応じて終了する. BrokenPipe は黙って成功扱い.
+fn exit_with(result: io::Result<()>) -> ! {
+    match result {
+        Ok(()) => std::process::exit(0),
+        // `which foo | head -1` などで下流が先に閉じた場合は黙って終了する.
+        Err(e) if e.kind() == io::ErrorKind::BrokenPipe => std::process::exit(0),
+        Err(e) => die!("Error: Failed to write to stdout: {}", e),
+    }
+}
+
 fn main() {
     let args = match args::parse_args() {
         Ok(args) => args,
@@ -88,13 +114,11 @@ fn main() {
     };
 
     if args.has_help_option {
-        println!("{}", usage());
-        std::process::exit(0);
+        exit_with(println(&usage()));
     }
 
     if args.has_version_option {
-        println!("{}", version());
-        std::process::exit(0);
+        exit_with(println(&version()));
     }
 
     if args.positional.len() != 1 {
@@ -123,7 +147,6 @@ fn main() {
     if program_paths.is_empty() {
         std::process::exit(1);
     }
-    for path in program_paths {
-        println!("{}", path.display());
-    }
+
+    exit_with(print_paths(&program_paths));
 }
