@@ -22,6 +22,7 @@ fn parse_pathext(pathext: &str) -> Vec<String> {
 }
 
 /// PATH 環境変数を分割して Vec<String> を返す.
+/// 各エントリの前後の空白は除去し(前後に空白を含むディレクトリ名は扱えない)、空のエントリは捨てる.
 fn parse_path(path: &str) -> Vec<String> {
     env::split_paths(path)
         .map(|p| p.to_string_lossy().trim().to_string())
