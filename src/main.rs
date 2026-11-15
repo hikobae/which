@@ -92,7 +92,8 @@ fn main() {
 
     let exts = match env::var("PATHEXT") {
         Ok(pathext) => parse_pathext(&pathext),
-        Err(_) => vec![],
+        Err(env::VarError::NotPresent) => vec![],
+        Err(e) => die!("Error: Failed to read PATHEXT environment variable: {}", e),
     };
 
     let current_dir = match env::current_dir() {

@@ -219,6 +219,34 @@ fn test_missing_pathext() {
         .code(0);
 }
 
+/// PATHEXT が非 UTF-8 の場合はエラー終了することを確認するテスト
+#[test]
+fn test_non_unicode_pathext() {
+    #[cfg(unix)]
+    let invalid = {
+        use std::os::unix::ffi::OsStringExt;
+        std::ffi::OsString::from_vec(vec![0xff, 0xfe])
+    };
+    #[cfg(windows)]
+    let invalid = {
+        use std::os::windows::ffi::OsStringExt;
+        std::ffi::OsString::from_wide(&[0xD800])
+    };
+
+    const FILE_NAME: &str = "file";
+    let temp_dir = assert_fs::TempDir::new().unwrap();
+    temp_dir.child(FILE_NAME).touch().unwrap();
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg(FILE_NAME)
+        .env("PATH", temp_dir.display().to_string())
+        .env("PATHEXT", &invalid)
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("Error:"))
+        .code(1);
+}
+
 #[test]
 fn test_error_when_app_name_is_directory_in_path() {
     let temp_dir = assert_fs::TempDir::new().unwrap();
