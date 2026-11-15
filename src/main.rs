@@ -79,7 +79,13 @@ fn which(filename: &str, dirs: &[PathBuf], exts: &[String]) -> Vec<PathBuf> {
 }
 
 fn main() {
-    let args = args::parse_args();
+    let args = match args::parse_args() {
+        Ok(args) => args,
+        Err(args::ArgsError::NotUnicode(os_string)) => die!(
+            "Error: Non-UTF-8 argument detected: {}",
+            os_string.to_string_lossy()
+        ),
+    };
 
     if args.has_help_option {
         println!("{}", usage());
