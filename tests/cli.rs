@@ -193,15 +193,30 @@ fn test_too_long_args() {
 
 #[test]
 fn test_missing_env_vars() {
-    for env in ["PATHEXT", "PATH"] {
-        let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.arg(env!("CARGO_PKG_NAME"))
-            .env_remove(env)
-            .assert()
-            .failure()
-            .stderr(predicates::str::contains("Error:"))
-            .code(1);
-    }
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg(env!("CARGO_PKG_NAME"))
+        .env_remove("PATH")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("Error:"))
+        .code(1);
+}
+
+/// PATHEXT 未定義の場合も正常に動作することを確認するテスト
+#[test]
+fn test_missing_pathext() {
+    const FILE_NAME: &str = "file.exe";
+    let temp_dir = assert_fs::TempDir::new().unwrap();
+    temp_dir.child(FILE_NAME).touch().unwrap();
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg(FILE_NAME)
+        .env("PATH", temp_dir.display().to_string())
+        .env_remove("PATHEXT")
+        .assert()
+        .success()
+        .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
+        .code(0);
 }
 
 #[test]
