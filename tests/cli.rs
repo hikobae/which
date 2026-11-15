@@ -3,7 +3,6 @@ use assert_fs::fixture::FileTouch;
 use assert_fs::fixture::PathChild;
 use assert_fs::prelude::PathCreateDir;
 use std::env;
-use std::path::PathBuf;
 
 /// PATH 上のファイルが見つかる基本ケース.
 #[test]
@@ -216,6 +215,8 @@ fn test_full_path_with_pathext() {
 #[test]
 #[cfg(windows)]
 fn test_path_with_case_variant_directories() {
+    use std::path::PathBuf;
+
     const FILE_NAME: &str = "file";
     let temp_dir = assert_fs::TempDir::new().unwrap();
     temp_dir.child(FILE_NAME).touch().unwrap();
