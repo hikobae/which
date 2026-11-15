@@ -24,6 +24,61 @@ fn test_success() {
         .code(0);
 }
 
+/// 複数のディレクトリにファイルがある場合、PATH の順に全て出力される.
+#[test]
+fn test_path_order_with_multiple_matches() {
+    const FILE_NAME: &str = "file";
+    let temp_dir1 = assert_fs::TempDir::new().unwrap();
+    let temp_dir2 = assert_fs::TempDir::new().unwrap();
+    let other_dir = assert_fs::TempDir::new().unwrap();
+    temp_dir1.child(FILE_NAME).touch().unwrap();
+    temp_dir2.child(FILE_NAME).touch().unwrap();
+
+    // PATH の指定順を逆にして、ソートされず指定順が保たれることも確認する.
+    for (first, second) in [(&temp_dir1, &temp_dir2), (&temp_dir2, &temp_dir1)] {
+        let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.arg(FILE_NAME)
+            .env(
+                "PATH",
+                env::join_paths([first.path(), second.path()]).unwrap(),
+            )
+            .env("PATHEXT", ".COM;.EXE")
+            .current_dir(&other_dir)
+            .assert()
+            .success()
+            .stdout(format!(
+                "{}\n{}\n",
+                first.child(FILE_NAME).display(),
+                second.child(FILE_NAME).display()
+            ))
+            .code(0);
+    }
+}
+
+/// カレントディレクトリのファイルは PATH 上のファイルより先に出力される.
+#[test]
+fn test_current_directory_comes_first() {
+    const FILE_NAME: &str = "file";
+    let current_dir = assert_fs::TempDir::new().unwrap();
+    let path_dir = assert_fs::TempDir::new().unwrap();
+    current_dir.child(FILE_NAME).touch().unwrap();
+    path_dir.child(FILE_NAME).touch().unwrap();
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg(FILE_NAME)
+        .env("PATH", path_dir.display().to_string())
+        .env("PATHEXT", ".COM;.EXE")
+        .current_dir(&current_dir)
+        .assert()
+        .success()
+        .stdout(format!(
+            "{}\n{}\n",
+            current_dir.child(FILE_NAME).display(),
+            path_dir.child(FILE_NAME).display()
+        ))
+        .code(0);
+}
+
 /// 別ファイルに誤マッチしないことを確認するテスト。
 /// ファイル名にドットが含まれる場合、拡張子の候補にドットが含まれるため、誤マッチする可能性がある。
 #[test]
