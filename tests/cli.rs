@@ -378,14 +378,15 @@ fn test_not_found() {
 /// PATH 上の同名のエントリがディレクトリの場合は実行ファイルとして扱わず、
 /// 何も出力せず終了コード 1 で終了することを確認するテスト。
 #[test]
-fn test_error_when_app_name_is_directory_in_path() {
+fn test_directory_with_same_name_is_ignored() {
+    const FILE_NAME: &str = "which";
     let temp_dir = assert_fs::TempDir::new().unwrap();
-    let which_dir = temp_dir.child("which");
-    which_dir.create_dir_all().unwrap();
+    temp_dir.child(FILE_NAME).create_dir_all().unwrap();
 
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-    cmd.arg(env!("CARGO_PKG_NAME"))
+    cmd.arg(FILE_NAME)
         .env("PATH", temp_dir.display().to_string())
+        .env("PATHEXT", ".COM;.EXE")
         .current_dir(&temp_dir)
         .assert()
         .failure()
