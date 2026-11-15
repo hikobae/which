@@ -110,7 +110,7 @@ fn main() {
 
     let paths = match env::var_os("PATH") {
         Some(path) => [vec![current_dir], parse_path(&path)].concat(),
-        None => die!("Error: Failed to read PATH environment variable: not set"),
+        None => die!("Error: PATH environment variable is not set"),
     };
 
     let program_paths = which(program_name, &paths, &exts);
