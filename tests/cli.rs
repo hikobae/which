@@ -411,3 +411,30 @@ fn test_dash_prefixed_name_is_treated_as_filename() {
         .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
         .code(0);
 }
+
+/// PATH に非 UTF-8 のディレクトリが含まれていても、他のディレクトリの検索は動作する.
+/// 非 UTF-8 のパスを環境変数に渡せるのは unix のみ.
+#[test]
+#[cfg(unix)]
+fn test_non_unicode_path_entry() {
+    use std::os::unix::ffi::OsStringExt;
+    use std::path::PathBuf;
+
+    const FILE_NAME: &str = "file";
+    let temp_dir = assert_fs::TempDir::new().unwrap();
+    let other_dir = assert_fs::TempDir::new().unwrap();
+    temp_dir.child(FILE_NAME).touch().unwrap();
+
+    let invalid = PathBuf::from(std::ffi::OsString::from_vec(vec![b'/', 0xff, 0xfe]));
+    let path = env::join_paths([invalid, temp_dir.path().to_path_buf()]).unwrap();
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg(FILE_NAME)
+        .env("PATH", path)
+        .env("PATHEXT", ".COM;.EXE")
+        .current_dir(&other_dir)
+        .assert()
+        .success()
+        .stdout(format!("{}\n", temp_dir.child(FILE_NAME).display()))
+        .code(0);
+}
