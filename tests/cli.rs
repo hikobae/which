@@ -285,6 +285,23 @@ fn test_non_unicode_pathext() {
         .code(1);
 }
 
+/// 存在しないアプリ名を指定して、stdout が空・終了コード 1 になることを確認するテスト。
+#[test]
+fn test_not_found() {
+    const FILE_NAME: &str = "file.exe";
+    let temp_dir = assert_fs::TempDir::new().unwrap();
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg(FILE_NAME)
+        .env("PATH", temp_dir.display().to_string())
+        .env("PATHEXT", ".COM;.EXE")
+        .current_dir(&temp_dir)
+        .assert()
+        .failure()
+        .stdout(predicates::str::is_empty())
+        .code(1);
+}
+
 /// PATH 上の同名のエントリがディレクトリの場合は実行ファイルとして扱わず、
 /// 何も出力せず終了コード 1 で終了することを確認するテスト。
 #[test]
