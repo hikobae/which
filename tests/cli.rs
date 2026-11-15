@@ -92,19 +92,39 @@ fn test_path_with_current_directory() {
         .code(0);
 }
 
-/// コマンドの引数にフルパスを指定した場合のテスト
+/// コマンドの引数にフルパスを指定した場合、PATH に無い場所のファイルでも見つかる.
 #[test]
 fn test_full_path() {
     const FILE_NAME: &str = "file";
-    let temp_dir = assert_fs::TempDir::new().unwrap();
-    let file = temp_dir.child(FILE_NAME);
+    let file_dir = assert_fs::TempDir::new().unwrap();
+    let other_dir = assert_fs::TempDir::new().unwrap();
+    let file = file_dir.child(FILE_NAME);
     file.touch().unwrap();
 
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
     cmd.arg(file.path())
-        .env("PATH", temp_dir.display().to_string())
+        .env("PATH", other_dir.display().to_string())
         .env("PATHEXT", ".COM;.EXE")
-        .current_dir(&temp_dir)
+        .current_dir(&other_dir)
+        .assert()
+        .success()
+        .stdout(format!("{}\n", file.display()))
+        .code(0);
+}
+
+/// フルパス(拡張子なし)指定でも PATHEXT による補完が効く.
+#[test]
+fn test_full_path_with_pathext() {
+    let file_dir = assert_fs::TempDir::new().unwrap();
+    let other_dir = assert_fs::TempDir::new().unwrap();
+    let file = file_dir.child("file.exe");
+    file.touch().unwrap();
+
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+    cmd.arg(file_dir.child("file").path())
+        .env("PATH", other_dir.display().to_string())
+        .env("PATHEXT", ".COM;.EXE")
+        .current_dir(&other_dir)
         .assert()
         .success()
         .stdout(format!("{}\n", file.display()))
